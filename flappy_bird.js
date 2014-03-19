@@ -9,19 +9,37 @@ var context = canvas.getContext('2d');
 //-------------------------------------------//
 // Game dimensions
 var scale = 3;
-var width = 144 * scale;
-var height = 257 * scale;
+var width = 144;
+var height = 257;
 // Set canvas dimensions to correct width and height
-canvas.width = width;
-canvas.height = height;
+canvas.width = width * scale;
+canvas.height = height * scale;
 var gameState = 'ready';
+var ground = {
+  w: 168,
+  h: 56,
+  x: 0,
+  y: (height - 56)
+};
 var bird = {
-  w: 17 * scale,
-  h: 12 * scale,
-  x: 35 * scale,
-  y: 120 * scale,
+  w: 17,
+  h: 12,
+  x: 35,
+  y: 120,
   v: 0
 };
+var pc = {
+  w: 26,
+  h: 160,
+  xv: 2,
+  gap_height: 50,
+  wait_time: 50,
+  start_x: width + 50,
+  min_y: 70,
+  max_y: 180
+};
+var pipes = [];
+var pipe_timer = 0;
 //
 // ADD MORE VARIABLES HERE!!!
 //
@@ -52,6 +70,9 @@ var imageLoaded = function() {
 // Define images
 addImg('bg', 'imgs/background.png');
 addImg('bird_up', 'imgs/bird_up.png');
+addImg('ground', 'imgs/ground.png');
+addImg('pipe_top', 'imgs/pipe_top.png');
+addImg('pipe_bottom', 'imgs/pipe_bottom.png');
 //
 // ADD MORE IMAGES HERE!!!
 //
@@ -83,8 +104,8 @@ var onCanvasMouseDown = function(e) {
   }
   if (gameState === 'play') {
     bird.v = Math.min(0, bird.v);
-    bird.v -= 3 * scale;
-    bird.v = Math.max(-3 * scale, bird.v);
+    bird.v -= 3;
+    bird.v = Math.max(-3, bird.v);
   }
   //
   // ADD CLICK HANDLING CODE HERE!!!
@@ -92,35 +113,60 @@ var onCanvasMouseDown = function(e) {
 };
 canvas.addEventListener('mousedown', onCanvasMouseDown);
 
-// Code that handles key presses
-var onCanvasKeyDown = function(e) {
-  // Uncomment this log statement to figure out which keys have which keyCode
-  // console.log(e.keyCode);
-  //
-  // ADD KEYBOARD HANDLING CODE HERE!!!
-  //
-};
-window.addEventListener('keydown', onCanvasKeyDown);
-
-
 
 //------------------------------------//
 //---------- MAIN GAME LOOP ----------//
 //------------------------------------//
-var updateGame = function() {
-  // Draw the background image
-  context.drawImage(imgs.bg, 0, 0, width, height);
+// This scales up all our images from phone size
+var drawImageScaled = function(img, x, y, w, h) {
+  context.drawImage(img, x * scale, y * scale, w * scale, h * scale);
+};
 
+// This generates a new pipe in our pipes array
+var genPipe = function() {
+  var pipe = {
+    x: pc.start_x,
+    y: pc.min_y + Math.random() * (pc.max_y - pc.min_y),
+  };
+  pipes.push(pipe);
+};
+
+// This is our main game loop
+var updateGame = function() {
+  var i, pipe, top_y;
   if (gameState === 'play') {
+    if (pipe_timer >= pc.wait_time) {
+      genPipe();
+      pipe_timer = 0;
+    }
+    for (i = 0; i < pipes.length; i++) {
+      pipes[i].x -= pc.xv;
+    }
+    if (pipes.length > 0 && pipes[0].x < -pc.w) {
+      pipes.shift();
+    }
+    pipe_timer++;
+    ground.x -= pc.xv;
+    if (ground.x <= -(ground.w - width)) {
+      ground.x = 0;
+    }
+
     bird.y += bird.v;
-    bird.v += .2 * scale;
+    bird.v += .2;
   }
   //
   // ADD GAME LOGIC HERE!!!
   //
 
-  // Draw the bird
-  context.drawImage(imgs.bird_up, bird.x, bird.y, bird.w, bird.h);
+  drawImageScaled(imgs.bg, 0, 0, width, height);
+  for (i = 0; i < pipes.length; i++) {
+    pipe = pipes[i];
+    drawImageScaled(imgs.pipe_bottom, pipe.x, pipe.y, pc.w, pc.h);
+    top_y = pipe.y - pc.gap_height - pc.h;
+    drawImageScaled(imgs.pipe_top, pipe.x, top_y, pc.w, pc.h);
+  }
+  drawImageScaled(imgs.ground, ground.x, ground.y, ground.w, ground.h);
+  drawImageScaled(imgs.bird_up, bird.x, bird.y, bird.w, bird.h);
   //
   // ADD MORE IMAGE DRAWING HERE!!!
   //
